@@ -1,8 +1,8 @@
 """
-Файл настроек проекта.
+Project configuration file.
 
-Здесь загружаются переменные окружения из .env и настраивается логирование
-для Telegram-бота и запросов к OpenAI.
+This module loads environment variables from .env and configures logging
+for the Telegram bot and OpenAI requests.
 """
 
 import logging

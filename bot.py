@@ -1,8 +1,8 @@
 """
-Точка входа бота.
+Bot entry point.
 
-Этот файл запускает приложение, создаёт Telegram Bot и Dispatcher,
-подключает роутер с обработчиками и стартует polling.
+This file starts the application, creates the Telegram Bot and Dispatcher,
+registers the handlers router, and launches polling.
 """
 
 import asyncio

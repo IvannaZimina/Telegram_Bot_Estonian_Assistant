@@ -1,8 +1,8 @@
 """
-Клавиатуры и inline-меню.
+Keyboards and inline menus.
 
-Файл содержит кнопки выбора языка и главное меню с действиями
-после перевода: примеры, формы слова и рестарт.
+This module defines language selection buttons and the main action menu
+shown after translation: examples, word forms, and restart.
 """
 
 from aiogram.types import InlineKeyboardMarkup

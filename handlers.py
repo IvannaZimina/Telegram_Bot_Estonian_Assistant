@@ -1,9 +1,9 @@
 """
-Основная логика Telegram-бота.
+Main Telegram bot logic.
 
-Здесь находятся обработчики /start, выбора языка, ввода текста,
-показа примеров, словоформ и кнопки рестарта. Этот файл связывает
-состояния пользователя, промпты OpenAI и ответы в Telegram.
+This module contains handlers for /start, language selection, text input,
+examples, word forms, and restart button actions. It connects user state,
+OpenAI prompts, and Telegram responses.
 """
 
 import json

@@ -1,8 +1,8 @@
 """
-Генераторы промптов для OpenAI.
+Prompt generators for OpenAI.
 
-Этот файл формирует текстовые инструкции для перевода, примеров
-и морфологического разбора, чтобы бот мог получать ответы в нужном формате.
+This module builds text instructions for translation, examples,
+and morphological analysis so the bot receives responses in the required format.
 """
 
 def make_translation_prompt(user_text: str) -> str:

@@ -1,8 +1,8 @@
 """
-Вспомогательные сервисы.
+Supporting services.
 
-Здесь создаётся клиент OpenAI, выполняются запросы к модели и
-есть простая функция для экранирования HTML перед отправкой в Telegram.
+This module initializes the OpenAI client, sends model requests,
+and provides a small helper for escaping HTML before sending to Telegram.
 """
 
 import asyncio

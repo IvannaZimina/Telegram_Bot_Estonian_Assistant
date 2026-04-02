@@ -1,8 +1,8 @@
 """
-FSM-состояния бота.
+Bot FSM states.
 
-Состояния используются для хранения шага диалога: выбор языка,
-последнее введённое слово и последний перевод на эстонский.
+States are used to store the current dialog step: language selection,
+the last user input, and the last Estonian translation.
 """
 
 from aiogram.fsm.state import State, StatesGroup
