@@ -1,20 +1,102 @@
+"""
+Основная логика Telegram-бота.
+
+Здесь находятся обработчики /start, выбора языка, ввода текста,
+показа примеров, словоформ и кнопки рестарта. Этот файл связывает
+состояния пользователя, промпты OpenAI и ответы в Telegram.
+"""
+
+import json
 import logging
+import re
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from keyboards import build_language_menu, build_main_menu
 from prompts import make_examples_prompt, make_forms_prompt, make_translation_prompt
-from services import ask_ai, escape_html
+from services import ask_ai
 from state import LearnFlow
 
 router = Router()
 logger = logging.getLogger(__name__)
 
 
+def clean_examples_text(text: str) -> str:
+    text = text.replace("<ol>", "").replace("</ol>", "")
+    text = text.replace("<li>", "\n").replace("</li>", "\n")
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</?b>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+
+    lines = [line.strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+
+    examples = []
+    current_sentence = None
+    current_translation = None
+
+    for line in lines:
+        numbered_match = re.match(r"^(\d+)[.)]\s*(.+)$", line)
+        if numbered_match:
+            if current_sentence:
+                examples.append((current_sentence, current_translation or ""))
+            current_sentence = numbered_match.group(2).strip()
+            current_translation = ""
+            continue
+
+        if current_sentence is None:
+            current_sentence = line
+            current_translation = ""
+            continue
+
+        if not current_translation:
+            current_translation = line
+        else:
+            current_translation = f"{current_translation} {line}".strip()
+
+    if current_sentence:
+        examples.append((current_sentence, current_translation or ""))
+
+    if len(examples) >= 3:
+        formatted = []
+        for index, (sentence, translation) in enumerate(examples[:3], start=1):
+            formatted.append(f"{index}. {sentence}")
+            if translation:
+                formatted.append(f"   {translation}")
+        return "\n".join(formatted).strip()
+
+    return "\n".join(lines).strip()
+
+
+def parse_translation_result(text: str, fallback_input: str) -> tuple[bool, str, str]:
+    cleaned = text.strip()
+    cleaned = cleaned.removeprefix("```json").removesuffix("```").strip()
+    match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+    if match:
+        cleaned = match.group(0)
+
+    try:
+        data = json.loads(cleaned)
+        is_estonian = bool(data.get("is_estonian", False))
+        estonian = str(data.get("estonian", "")).strip() or fallback_input
+        russian = str(data.get("russian", "")).strip()
+        return is_estonian, estonian, russian
+    except Exception:
+        logger.warning("Failed to parse translation JSON, falling back to raw text")
+        return False, cleaned or fallback_input, ""
+
+
 async def send_menu(message: types.Message, lang: str, show_forms: bool) -> None:
+    hint = (
+        "После просмотра просто введите новое слово." if lang == "ru" else "After reading the result, just type a new word."
+    )
     await message.answer(
-        "<b>Выберите действие:</b>" if lang == "ru" else "<b>Choose an action:</b>",
+        (
+            f"<b>Выберите действие:</b>\n{hint}"
+            if lang == "ru"
+            else f"<b>Choose an action:</b>\n{hint}"
+        ),
         reply_markup=build_main_menu(lang, show_forms),
         parse_mode="HTML",
     )
@@ -67,16 +149,26 @@ async def process_text(message: types.Message, state: FSMContext):
 
     await state.update_data(last_word=user_text)
 
-    est = await ask_ai(make_translation_prompt(user_text))
-    await state.update_data(last_estonian=est)
-    logger.info("Translation generated: %r", est)
+    translation_result = await ask_ai(make_translation_prompt(user_text))
+    is_estonian, estonian_text, russian_text = parse_translation_result(translation_result, user_text)
+    await state.update_data(last_estonian=estonian_text)
+    logger.info("Translation generated: estonian=%r is_estonian=%s", estonian_text, is_estonian)
 
     show_forms = len(user_text.split()) == 1
-    header = "Перевод на эстонский" if lang == "ru" else "Translation to Estonian"
-    await message.answer(
-        f"<b>{header}:</b>\n<b>{escape_html(est)}</b>",
-        parse_mode="HTML",
-    )
+    if is_estonian:
+        reply = (
+            f'Слово "{user_text}" уже на эстонском.\nПеревод на русский: {russian_text or "—"}'
+            if lang == "ru"
+            else f'The word "{user_text}" is already in Estonian.\nTranslation to Russian: {russian_text or "—"}'
+        )
+    else:
+        reply = (
+            f"Перевод на эстонский:\n{estonian_text}"
+            if lang == "ru"
+            else f"Translation to Estonian:\n{estonian_text}"
+        )
+
+    await message.answer(reply)
     await send_menu(message, lang, show_forms)
 
 
@@ -94,7 +186,8 @@ async def examples(call: types.CallbackQuery, state: FSMContext):
     logger.info("Examples generated for word=%r", est_word)
 
     show_forms = len(data.get("last_word", "").split()) == 1
-    await call.message.answer(f"<b>{escape_html(text)}</b>", parse_mode="HTML")
+    examples_text = clean_examples_text(text)
+    await call.message.answer(f"Примеры:\n{examples_text}")
     await send_menu(call.message, lang, show_forms)
 
 
