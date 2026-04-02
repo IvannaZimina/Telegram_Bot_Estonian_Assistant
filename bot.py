@@ -1,3 +1,10 @@
+"""
+Точка входа бота.
+
+Этот файл запускает приложение, создаёт Telegram Bot и Dispatcher,
+подключает роутер с обработчиками и стартует polling.
+"""
+
 import asyncio
 
 from aiogram import Bot, Dispatcher
