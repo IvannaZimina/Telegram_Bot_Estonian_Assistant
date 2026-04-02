@@ -109,6 +109,24 @@ def normalize_forms_result(text: str) -> str:
     return cleaned.strip()
 
 
+def is_emoji_only(text: str) -> bool:
+    """
+    Check if text contains only emoji, whitespace, and common symbols.
+    Returns True if no alphanumeric characters are found.
+    """
+    cleaned = text.replace(" ", "").replace("\n", "").replace("\t", "")
+    if not cleaned:
+        return False
+
+    for char in cleaned:
+        if char.isalnum():
+            return False
+        if char in '.,!?;:\'"()-[]{}@#$%^&*/':
+            return False
+
+    return True
+
+
 async def send_menu(message: types.Message, lang: str, show_forms: bool) -> None:
     hint = "После просмотра просто введите новое слово." if lang == "ru" else "After reading the result, just type a new word."
     await message.answer(hint, reply_markup=build_main_menu(lang, show_forms))
@@ -144,7 +162,12 @@ async def process_text(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     if not message.text:
-        return await message.answer("<b>Пожалуйста, отправьте текстовое сообщение.</b>", parse_mode="HTML")
+        return await message.answer(
+            "<b>Пожалуйста, отправьте текстовое сообщение.</b>"
+            if "language" not in data or data["language"] == "ru"
+            else "<b>Please send a text message.</b>",
+            parse_mode="HTML",
+        )
 
     if "language" not in data:
         return await message.answer(
@@ -155,9 +178,15 @@ async def process_text(message: types.Message, state: FSMContext):
     lang = data["language"]
     user_text = message.text.strip()
     if not user_text:
-        return await message.answer("<b>Пожалуйста, отправьте непустой текст.</b>", parse_mode="HTML")
+        error_msg = "<b>Пожалуйста, отправьте непустой текст.</b>" if lang == "ru" else "<b>Please send a non-empty text.</b>"
+        return await message.answer(error_msg, parse_mode="HTML")
 
     logger.info("Text received: lang=%s text=%r", lang, user_text)
+
+    if is_emoji_only(user_text):
+        reply = "Это смайл 😊" if lang == "ru" else "This is an emoji 😊"
+        await message.answer(reply)
+        return
 
     await state.update_data(last_word=user_text)
 
@@ -192,14 +221,16 @@ async def examples(call: types.CallbackQuery, state: FSMContext):
     lang = data.get("language")
 
     if not est_word or not lang:
-        return await call.message.answer("<b>Сначала введите слово или фразу.</b>", parse_mode="HTML")
+        error_msg = "<b>Сначала введите слово или фразу.</b>" if lang == "ru" else "<b>Please enter a word or phrase first.</b>"
+        return await call.message.answer(error_msg, parse_mode="HTML")
 
     text = await ask_ai(make_examples_prompt(est_word, lang))
     logger.info("Examples generated for word=%r", est_word)
 
     show_forms = len(data.get("last_word", "").split()) == 1
     examples_text = clean_examples_text(text)
-    await call.message.answer(f"Примеры:\n{examples_text}")
+    header = "Примеры:" if lang == "ru" else "Examples:"
+    await call.message.answer(f"{header}\n{examples_text}")
     await send_menu(call.message, lang, show_forms)
 
 
@@ -212,10 +243,12 @@ async def forms(call: types.CallbackQuery, state: FSMContext):
     original = data.get("last_word", "")
 
     if not est or not original or not lang:
-        return await call.message.answer("<b>Сначала введите слово или фразу.</b>", parse_mode="HTML")
+        error_msg = "<b>Сначала введите слово или фразу.</b>" if lang == "ru" else "<b>Please enter a word or phrase first.</b>"
+        return await call.message.answer(error_msg, parse_mode="HTML")
 
     if len(original.split()) != 1:
-        return await call.message.answer("<b>Формы слова доступны только для одного слова.</b>", parse_mode="HTML")
+        error_msg = "<b>Формы слова доступны только для одного слова.</b>" if lang == "ru" else "<b>Word forms are available only for a single word.</b>"
+        return await call.message.answer(error_msg, parse_mode="HTML")
 
     result = await ask_ai(make_forms_prompt(est))
     logger.info("Forms generated for word=%r", est)
