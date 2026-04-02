@@ -1,132 +1,122 @@
 # TG Estonian Bot
 
-Бот для перевода слов и фраз с русского или английского на эстонский. После перевода он может показать примеры употребления и формы слова.
+TG Estonian Bot is a Telegram assistant for learning Estonian through short translations, examples, and basic morphology. A user can send a Russian, English, or already Estonian word/phrase, and the bot responds with the most useful next step instead of just producing a raw translation.
 
-## Что есть внутри
+## What the bot does
 
-- `bot.py` - точка входа и запуск polling
-- `handlers.py` - все хендлеры Telegram
-- `services.py` - вызов OpenAI и HTML-экранирование
-- `prompts.py` - генерация промптов
-- `keyboards.py` - inline-клавиатуры
-- `state.py` - FSM-состояния
-- `config.py` - загрузка `.env` и настройка логирования
-- `.env` - токены Telegram и OpenAI
-- `.env.example` - шаблон переменных окружения
-- `requirements.txt` - зависимости
-- `README.md` - описание логики и схемы работы
+The bot is designed as a small guided learning flow:
 
-## Как работает бот
+1. The user starts the bot with `/start`.
+2. The bot asks the user to choose an interface language: Russian or English.
+3. The user sends a word or phrase.
+4. The bot checks whether the input is already Estonian.
+5. If the text is not Estonian, the bot translates it into Estonian.
+6. If the text is already Estonian, the bot says so and shows the Russian translation.
+7. After the main answer, the bot shows buttons for examples, word forms, and restart.
+8. The user can then either press a button or simply type a new word immediately.
 
-### 1. Запуск
-- Загружаются переменные окружения через `load_dotenv()`.
-- Из `.env` берутся `TELEGRAM_TOKEN` и `OPENAI_API_KEY`.
-- `bot.py` создает `Bot`, `Dispatcher` и подключает router из `handlers.py`.
-- `services.py` создает клиент `OpenAI`.
+This means the bot is not a long chat. It works like a compact learning tool that remembers the latest input and gives follow-up actions based on it.
 
-### 2. Команда `/start`
-- Бот очищает состояние FSM.
-- Показывает выбор языка: русский или английский.
-- После этого переводит пользователя в состояние `choosing_language`.
+## User Journey
 
-### 3. Выбор языка
-- При нажатии на кнопку языка бот сохраняет `language=ru` или `language=en`.
-- Пользователь получает подсказку: можно вводить слово или фразу.
+### 1. Start
 
-### 4. Ввод текста
-- Любое текстовое сообщение ловит общий обработчик `process_text()`.
-- Если язык еще не выбран, бот просит сначала нажать `/start`.
-- Если язык уже есть, бот:
-  - сохраняет исходный текст как `last_word`;
-  - отправляет запрос в OpenAI для перевода на эстонский;
-  - сохраняет результат как `last_estonian`.
-- Если пользователь отправляет не текст, бот просит прислать текстовое сообщение.
+When the user sends `/start`, the bot clears any previous conversation state and shows a language picker.
 
-### 5. Ответ после перевода
-- Бот отправляет перевод пользователю.
-- Показывает inline-меню:
-  - `Примеры`
-  - `Формы слова` только если введено одно слово
-  - `Рестарт`
-- Все пользовательские ответы приведены к HTML-формату.
-- Меню собирается в `keyboards.py`, а показ меню вынесен в helper `send_menu()`.
+### 2. Choose interface language
 
-### 6. Кнопка `Примеры`
-- Бот берет `last_estonian`.
-- Просит OpenAI сгенерировать 3 естественных предложения на эстонском.
-- После каждого предложения добавляется перевод на язык интерфейса.
+The user selects either Russian or English. The choice only changes the interface text and the button labels. It does not change the language of the learning content itself.
 
-### 7. Кнопка `Формы слова`
-- Бот берет `last_estonian`.
-- Если исходный ввод был одним словом, OpenAI просит дать словоформы и краткую морфологию.
-- Если пользователь вводил фразу, бот сообщает, что формы доступны только для одного слова.
+### 3. Enter a word or phrase
 
-### 8. Кнопка `Рестарт`
-- Бот возвращает пользователя к сцене `/start` и выбору языка.
+After the language is selected, the user can type a word or a short phrase in Russian, English, or Estonian.
 
-## Что было улучшено
+### 4. Main response
 
-- Промпты вынесены в отдельные функции:
-  - `make_translation_prompt()`
-  - `make_examples_prompt()`
-  - `make_forms_prompt()`
-- Код разнесен по отдельным модулям, чтобы `bot.py` остался только точкой входа.
-- Все ответы отправляются в едином HTML-формате.
-- Пользовательский текст экранируется перед выводом, чтобы не ломать разметку.
-- Добавлено логирование через `logging`.
-- Запрос к OpenAI выполняется через `asyncio.to_thread()`, чтобы не блокировать бота.
-- Добавлена защита от пустых и не-текстовых сообщений.
-- Добавлен `.env.example` для быстрого старта проекта.
+The bot sends the result in one of two ways:
 
-## Состояния FSM
+- If the input is not Estonian, it returns the Estonian translation.
+- If the input is already Estonian, it tells the user that the word is already in Estonian and gives the Russian translation.
 
-В `LearnFlow` хранятся:
+At this point the bot also stores the latest input and the Estonian form of that input so the next actions can reuse it.
 
-- `choosing_language` - этап выбора языка
-- `language` - выбранный язык интерфейса
-- `last_word` - последний введенный текст
-- `last_estonian` - последний полученный перевод
+### 5. Follow-up actions
 
-## Схема работы
+After the answer, the bot shows a menu:
 
-```mermaid
-flowchart TD
-    A[/start/] --> B[Очистка state]
-    B --> C[Выбор языка]
-    C --> D[Сохранить language]
-    D --> E[Пользователь вводит слово или фразу]
-    E --> F[process_text]
-    F --> G[Сохранить last_word]
-    G --> H[Запрос в OpenAI: перевод на эстонский]
-    H --> I[Сохранить last_estonian]
-    I --> J[Показать перевод]
-    J --> K{Что нажал пользователь?}
-    K --> L[Примеры]
-    K --> M[Формы слова]
-    K --> N[Рестарт]
-    L --> O[OpenAI: 3 примера + перевод]
-    M --> P[OpenAI: словоформы и морфология]
-    N --> A
-```
+- Examples: generates three natural Estonian example sentences and translations.
+- Word forms: shows morphology and forms, but only for a single Estonian word.
+- Restart: sends the user back to the beginning.
 
-## Как лучше понимать логику
+The bot also tells the user that they can simply type a new word at any time. There is no mandatory command for continuing.
 
-- Бот не ведет длинный чат, а работает от последнего введенного текста.
-- Все дополнительные действия завязаны на сохраненные значения `last_word` и `last_estonian`.
-- Кнопка `Формы слова` имеет смысл только после ввода одного слова.
-- Кнопка `Примеры` использует уже переведенное эстонское слово.
+### 6. Examples
 
-## Что можно улучшить еще
+If the user presses Examples, the bot asks OpenAI for three example sentences in Estonian using the latest Estonian word. The response is cleaned and shown in a readable plain-text format.
 
-- Разнести кнопки меню и текстовые ответы по отдельным helper-функциям.
-- Добавить более строгую валидацию ответа OpenAI перед отправкой.
-- Перейти на полностью асинхронный OpenAI-клиент, если это потребуется для нагрузки.
+### 7. Word forms
 
-## Запуск
+If the user presses Word forms, the bot asks OpenAI for the part of speech and the relevant forms. This option is only shown when the original input was a single word, because morphology is most useful there.
 
-1. Установить зависимости из `requirements.txt`.
-2. Создать `.env` по образцу из `.env.example`.
-3. Указать ключи:
-   - `TELEGRAM_TOKEN`
-   - `OPENAI_API_KEY`
-4. Запустить `bot.py`.
+### 8. Restart
+
+If the user presses Restart, the bot resets the flow and returns to the language selection screen.
+
+## Project Structure
+
+- `bot.py` - application entry point. Creates the bot, dispatcher, and starts polling.
+- `config.py` - loads environment variables and sets up logging.
+- `handlers.py` - contains the Telegram conversation logic and all user actions.
+- `keyboards.py` - builds the inline keyboards used by the bot.
+- `prompts.py` - builds the OpenAI prompts for translation, examples, and forms.
+- `services.py` - wraps OpenAI calls and HTML escaping helpers.
+- `state.py` - defines FSM states used to keep track of the current flow.
+- `requirements.txt` - project dependencies.
+- `.env` - local secrets for Telegram and OpenAI.
+- `.env.example` - template for the environment file.
+
+## How the Logic Works Internally
+
+The bot uses a small FSM-based flow to remember what the user has already done.
+
+- `choosing_language` - the user is selecting the interface language.
+- `language` - the selected interface language is stored in the state data.
+- `last_word` - the last user input is saved here.
+- `last_estonian` - the latest Estonian form or translation is saved here.
+
+The main handler in `handlers.py` does most of the work:
+
+1. It receives the user message.
+2. It checks that the message is text.
+3. It checks that the user already picked a language.
+4. It sends the text to OpenAI through a translation prompt.
+5. It parses the response and decides whether the input was already Estonian.
+6. It saves the Estonian text for later actions.
+7. It sends the main answer and shows the follow-up menu.
+
+The examples and forms actions do not start from scratch. They reuse the latest Estonian word stored in the state.
+
+## Implementation Notes
+
+- The bot uses `aiogram` for Telegram integration.
+- OpenAI requests are wrapped in `asyncio.to_thread()` so the bot stays responsive.
+- The examples response is normalized to plain text to avoid Telegram HTML parsing issues.
+- HTML is used only where it is safe and needed.
+- Logging is enabled to make the runtime flow easier to debug.
+
+## Setup
+
+1. Install dependencies from `requirements.txt`.
+2. Create a `.env` file based on `.env.example`.
+3. Set `TELEGRAM_TOKEN` and `OPENAI_API_KEY`.
+4. Run `bot.py`.
+
+## Notes for Users
+
+You do not need to memorize commands after the bot starts.
+
+- After `/start`, choose the interface language once.
+- Then just type a word or phrase.
+- After each answer, you can press a button or type the next word immediately.
+
+That is the intended flow: start once, type naturally, and keep learning step by step.
