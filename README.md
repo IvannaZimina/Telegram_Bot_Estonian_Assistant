@@ -12,8 +12,9 @@ The bot is designed as a small guided learning flow:
 4. The bot checks whether the input is already Estonian.
 5. If the text is not Estonian, the bot translates it into Estonian.
 6. If the text is already Estonian, the bot says so and shows the Russian translation.
-7. After the main answer, the bot shows buttons for examples, word forms, and restart.
-8. The user can then either press a button or simply type a new word immediately.
+7. After the main answer, the bot shows buttons for examples, word forms, and restart only when the user entered a single word.
+8. If the user entered a phrase, the word-forms button is hidden.
+9. The user can then either press a button or simply type a new word immediately.
 
 This means the bot is not a long chat. It works like a compact learning tool that remembers the latest input and gives follow-up actions based on it.
 
@@ -42,10 +43,10 @@ At this point the bot also stores the latest input and the Estonian form of that
 
 ### 5. Follow-up actions
 
-After the answer, the bot shows a menu:
+After the answer, the bot shows a minimal menu:
 
 - Examples: generates three natural Estonian example sentences and translations.
-- Word forms: shows morphology and forms, but only for a single Estonian word.
+- Word forms: shows morphology and forms, but only for a single word.
 - Restart: sends the user back to the beginning.
 
 The bot also tells the user that they can simply type a new word at any time. There is no mandatory command for continuing.
@@ -56,7 +57,7 @@ If the user presses Examples, the bot asks OpenAI for three example sentences in
 
 ### 7. Word forms
 
-If the user presses Word forms, the bot asks OpenAI for the part of speech and the relevant forms. This option is only shown when the original input was a single word, because morphology is most useful there.
+If the user presses Word forms, the bot asks OpenAI for the part of speech and the relevant forms. This option is only shown when the original input was a single word. Phrase inputs hide the section entirely.
 
 ### 8. Restart
 
@@ -103,6 +104,7 @@ The examples and forms actions do not start from scratch. They reuse the latest 
 - The examples response is normalized to plain text to avoid Telegram HTML parsing issues.
 - HTML is used only where it is safe and needed.
 - Logging is enabled to make the runtime flow easier to debug.
+- The word-forms button is controlled by the original input length, so phrases do not expose the morphology section.
 
 ## Setup
 
