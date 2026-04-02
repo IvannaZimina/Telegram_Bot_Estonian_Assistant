@@ -1,6 +1,6 @@
-# TG Estonian Bot
+# Telegram Bot Estonian Assistant
 
-TG Estonian Bot is a Telegram assistant for learning Estonian through short translations, examples, and basic morphology. A user can send a Russian, English, or already Estonian word/phrase, and the bot responds with the most useful next step instead of just producing a raw translation.
+Telegram Bot Estonian Assistant is a Telegram assistant for learning Estonian through short translations, examples, and basic morphology. A user can send a Russian, English, or already Estonian word/phrase, and the bot responds with the most useful next step instead of just producing a raw translation.
 
 ## What the bot does
 
