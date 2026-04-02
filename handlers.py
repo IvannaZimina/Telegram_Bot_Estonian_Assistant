@@ -87,19 +87,31 @@ def parse_translation_result(text: str, fallback_input: str) -> tuple[bool, str,
         return False, cleaned or fallback_input, ""
 
 
+def normalize_forms_result(text: str) -> str:
+    cleaned = text.strip()
+
+    if re.search(r"<b>Часть речи:</b>\s*tegusõna", cleaned, flags=re.IGNORECASE):
+        cleaned = re.sub(
+            r"\n?<b>Словоформы:</b>.*$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+    else:
+        cleaned = re.sub(
+            r"\n?<b>Глагольные формы:</b>.*$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 async def send_menu(message: types.Message, lang: str, show_forms: bool) -> None:
-    hint = (
-        "После просмотра просто введите новое слово." if lang == "ru" else "After reading the result, just type a new word."
-    )
-    await message.answer(
-        (
-            f"<b>Выберите действие:</b>\n{hint}"
-            if lang == "ru"
-            else f"<b>Choose an action:</b>\n{hint}"
-        ),
-        reply_markup=build_main_menu(lang, show_forms),
-        parse_mode="HTML",
-    )
+    hint = "После просмотра просто введите новое слово." if lang == "ru" else "After reading the result, just type a new word."
+    await message.answer(hint, reply_markup=build_main_menu(lang, show_forms))
 
 
 @router.message(Command("start"))
@@ -208,7 +220,7 @@ async def forms(call: types.CallbackQuery, state: FSMContext):
     result = await ask_ai(make_forms_prompt(est))
     logger.info("Forms generated for word=%r", est)
 
-    await call.message.answer(result, parse_mode="HTML")
+    await call.message.answer(normalize_forms_result(result), parse_mode="HTML")
     await send_menu(call.message, lang, True)
 
 
