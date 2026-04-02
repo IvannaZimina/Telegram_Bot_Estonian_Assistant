@@ -2,6 +2,29 @@
 
 Telegram Bot Estonian Assistant is a Telegram assistant for learning Estonian through short translations, examples, and basic morphology. A user can send a Russian, English, or already Estonian word/phrase, and the bot responds with the most useful next step instead of just producing a raw translation.
 
+## Project Overview
+
+This project is written in Python and uses aiogram to build the Telegram bot. The AI layer is powered by the OpenAI API, which helps the bot translate text into Estonian, detect when a user has already typed Estonian, generate example sentences, and show basic word forms. The flow is kept responsive with asyncio, while python-dotenv is used to load environment variables from a local .env file.
+
+The main problems solved by AI integration are:
+
+1. Fast translation from Russian or English into Estonian.
+2. Detection of input that is already in Estonian, so the bot can react correctly instead of translating twice.
+3. Generation of examples and morphology follow-up from the last user input.
+4. Keeping the conversation short and useful by showing the right next action after each answer.
+
+Technologies and languages used in the project:
+
+1. Python.
+2. Telegram Bot API.
+3. aiogram 3.
+4. OpenAI API.
+5. asyncio.
+6. python-dotenv.
+7. Docker.
+8. Docker Compose.
+9. HTML parse mode for Telegram formatting.
+
 ## What the bot does
 
 The bot is designed as a small guided learning flow:
