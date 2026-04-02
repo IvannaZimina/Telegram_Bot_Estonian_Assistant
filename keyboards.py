@@ -1,3 +1,10 @@
+"""
+Клавиатуры и inline-меню.
+
+Файл содержит кнопки выбора языка и главное меню с действиями
+после перевода: примеры, формы слова и рестарт.
+"""
+
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
