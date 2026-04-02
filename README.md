@@ -113,6 +113,32 @@ The examples and forms actions do not start from scratch. They reuse the latest 
 3. Set `TELEGRAM_TOKEN` and `OPENAI_API_KEY`.
 4. Run `bot.py`.
 
+## Run On A Server
+
+If you want the bot to be available for other people while your own computer is off, you need to run it on a machine that stays online.
+
+The simplest option is Docker:
+
+1. Install Docker on a VPS or cloud instance.
+2. Copy this repository there.
+3. Create a `.env` file with `TELEGRAM_TOKEN` and `OPENAI_API_KEY`.
+4. Build and start the container:
+
+```bash
+docker build -t estonian-bot .
+docker run -d --name estonian-bot --env-file .env --restart unless-stopped estonian-bot
+```
+
+If you use Docker Compose, the same setup works with a restart policy and an env file. This is usually the lowest-effort way to keep the bot online.
+
+### Budget-friendly hosting options
+
+- A small VPS with Docker, if you want the bot to stay online continuously.
+- A free cloud VM, if you can get one, but availability and limits vary.
+- Free app platforms are usually not ideal for Telegram polling bots because they often sleep when idle.
+
+For your case, polling is fine. The important part is not the Telegram code itself, but that the process must keep running somewhere other than your laptop.
+
 ## Notes for Users
 
 You do not need to memorize commands after the bot starts.
