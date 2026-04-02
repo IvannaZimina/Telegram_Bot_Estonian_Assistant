@@ -122,3 +122,8 @@ You do not need to memorize commands after the bot starts.
 - After each answer, you can press a button or type the next word immediately.
 
 That is the intended flow: start once, type naturally, and keep learning step by step.
+
+## Views
+<img width="384" height="379" alt="image" src="https://github.com/user-attachments/assets/886356d6-499b-4951-9638-ec3e1b6fb916" />
+<img width="375" height="955" alt="image" src="https://github.com/user-attachments/assets/52a461cf-1f95-48e2-917b-a1aa1ef08871" />
+
